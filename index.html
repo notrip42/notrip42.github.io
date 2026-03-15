@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>5x Speed Audio Processor</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #1e1e1e;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+    }
+    h1 { margin-top: 0; font-size: 24px; color: #00e676; }
+    p { color: #aaaaaa; font-size: 14px; margin-bottom: 20px; }
+    input[type="file"] {
+      display: none;
+    }
+    .custom-file-upload, .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      cursor: pointer;
+      background: #333;
+      color: white;
+      border-radius: 6px;
+      border: 1px solid #555;
+      transition: all 0.2s;
+      margin: 10px 0;
+      width: 80%;
+      box-sizing: border-box;
+    }
+    .custom-file-upload:hover, .btn:hover { background: #444; }
+    .btn-process {
+      background: #00e676;
+      color: #121212;
+      border: none;
+      font-weight: bold;
+    }
+    .btn-process:hover { background: #00c853; }
+    .btn-process:disabled { background: #555; color: #888; cursor: not-allowed; }
+    
+    #status { margin-top: 15px; font-size: 14px; color: #ffeb3b; }
+    #download-link {
+      display: none;
+      margin-top: 20px;
+      color: #00e676;
+      text-decoration: none;
+      font-weight: bold;
+      border-bottom: 2px solid #00e676;
+      padding-bottom: 2px;
+    }
+    #download-link:hover { color: #00c853; border-color: #00c853; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Audio Speeder</h1>
+    <p>Upload a song (MP3, WAV, etc.) to speed it up 5x.</p>
+    
+    <label class="custom-file-upload">
+      <input type="file" id="audio-input" accept="audio/*">
+      Select Audio File
+    </label>
+    <div id="file-name" style="margin-bottom: 10px; font-size: 12px; color: #888;"></div>
+
+    <button id="process-btn" class="btn btn-process" disabled>Speed Up 5x</button>
+    
+    <div id="status"></div>
+    <a id="download-link" download="sped-up-song.wav">Download Sped-Up Audio</a>
+  </div>
+
+  <script>
+    const audioInput = document.getElementById('audio-input');
+    const fileNameDisplay = document.getElementById('file-name');
+    const processBtn = document.getElementById('process-btn');
+    const statusText = document.getElementById('status');
+    const downloadLink = document.getElementById('download-link');
+
+    let selectedFile = null;
+
+    // Handle file selection
+    audioInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        selectedFile = e.target.files[0];
+        fileNameDisplay.textContent = selectedFile.name;
+        processBtn.disabled = false;
+        downloadLink.style.display = 'none';
+        statusText.textContent = '';
+      }
+    });
+
+    // Process the audio when the button is clicked
+    processBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      processBtn.disabled = true;
+      statusText.textContent = 'Processing... This might take a moment.';
+
+      try {
+        const arrayBuffer = await selectedFile.arrayBuffer();
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Decode the uploaded audio
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+        // Set the target speed multiplier
+        const speedRatio = 5.0;
+
+        // Create an OfflineAudioContext to render the audio faster without playing it out loud
+        const offlineCtx = new OfflineAudioContext(
+          audioBuffer.numberOfChannels,
+          audioBuffer.length / speedRatio,
+          audioBuffer.sampleRate
+        );
+
+        // Create a buffer source for our audio
+        const source = offlineCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        
+        // THIS is where the magic happens: speed it up 5x
+        source.playbackRate.value = speedRatio;
+        
+        source.connect(offlineCtx.destination);
+        source.start();
+
+        // Render the new sped-up audio
+        const renderedBuffer = await offlineCtx.startRendering();
+
+        // Convert the rendered buffer back to a downloadable WAV file
+        const wavBlob = bufferToWav(renderedBuffer);
+        const url = URL.createObjectURL(wavBlob);
+
+        // Set up the download link
+        downloadLink.href = url;
+        downloadLink.download = `5x_${selectedFile.name.split('.')[0]}.wav`;
+        downloadLink.style.display = 'inline-block';
+        downloadLink.textContent = `Download 5x_${selectedFile.name.split('.')[0]}.wav`;
+        
+        statusText.textContent = 'Done!';
+      } catch (error) {
+        console.error(error);
+        statusText.textContent = 'Error processing the audio file.';
+        processBtn.disabled = false;
+      }
+    });
+
+    // --- Helper Function to convert AudioBuffer to WAV format ---
+    function bufferToWav(abuffer) {
+      let numOfChan = abuffer.numberOfChannels,
+          length = abuffer.length * numOfChan * 2 + 44,
+          buffer = new ArrayBuffer(length),
+          view = new DataView(buffer),
+          channels = [], i, sample,
+          offset = 0,
+          pos = 0;
+
+      // write WAVE header
+      setUint32(0x46464952);                         // "RIFF"
+      setUint32(length - 8);                         // file length - 8
+      setUint32(0x45564157);                         // "WAVE"
+
+      setUint32(0x20746d66);                         // "fmt " chunk
+      setUint32(16);                                 // length = 16
+      setUint16(1);                                  // PCM (uncompressed)
+      setUint16(numOfChan);
+      setUint32(abuffer.sampleRate);
+      setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
+      setUint16(numOfChan * 2);                      // block-align
+      setUint16(16);                                 // 16-bit (hardcoded in this exporter)
+
+      setUint32(0x61746164);                         // "data" - chunk
+      setUint32(length - pos - 4);                   // chunk length
+
+      // write interleaved data
+      for(i = 0; i < abuffer.numberOfChannels; i++)
+        channels.push(abuffer.getChannelData(i));
+
+      while(pos < length) {
+        for(i = 0; i < numOfChan; i++) {
+          sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
+          sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0; // scale to 16-bit integer
+          view.setInt16(pos, sample, true);          // write 16-bit sample
+          pos += 2;
+        }
+        offset++                                     // next source sample
+      }
+
+      return new Blob([buffer], {type: "audio/wav"});
+
+      function setUint16(data) {
+        view.setUint16(pos, data, true);
+        pos += 2;
+      }
+
+      function setUint32(data) {
+        view.setUint32(pos, data, true);
+        pos += 4;
+      }
+    }
+  </script>
+</body>
+</html>
