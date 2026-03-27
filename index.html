@@ -3,260 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpeedUp Precision</title>
+    <title>Audio Speed Factor 4.5045x</title>
     <style>
-        :root {
-            --primary: #1db954;
-            --bg: #0f0f0f;
-            --card: #1a1a1a;
-            --text: #ffffff;
-            --input-bg: #252525;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        .container {
-            background: var(--card);
-            padding: 2.5rem;
-            border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-            border: 1px solid #333;
-        }
-
-        h1 { font-weight: 800; margin-bottom: 2rem; letter-spacing: -1px; }
-
-        .file-input-wrapper { margin-bottom: 2rem; }
-        
-        input[type="file"] {
-            background: var(--input-bg);
-            padding: 12px;
-            border-radius: 10px;
-            width: 100%;
-            color: #888;
-            border: 1px solid #333;
-            cursor: pointer;
-        }
-
-        .control-group {
-            margin-bottom: 2rem;
-            text-align: center;
-        }
-
-        label { 
-            display: block; 
-            margin-bottom: 0.8rem; 
-            color: #888; 
-            font-size: 0.75rem; 
-            text-transform: uppercase; 
-            letter-spacing: 1px;
-        }
-
-        /* The Styled Text/Number Field */
-        input[type="number"] {
-            background: var(--input-bg);
-            border: 1px solid #444;
-            color: var(--primary);
-            font-size: 2rem;
-            font-weight: bold;
-            padding: 10px;
-            border-radius: 12px;
-            width: 120px;
-            text-align: center;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        input[type="number"]:focus {
-            border-color: var(--primary);
-        }
-
-        /* Remove arrows from number input */
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
-        .modes {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 2rem;
-        }
-
-        .mode-btn {
-            background: var(--input-bg);
-            border: 1px solid #444;
-            color: white;
-            padding: 12px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 0.75rem;
-            transition: 0.2s;
-        }
-
-        .mode-btn.active {
-            background: var(--primary);
-            border-color: var(--primary);
-            color: black;
-            font-weight: bold;
-        }
-
-        button#downloadBtn {
-            background: var(--primary);
-            color: black;
-            border: none;
-            padding: 18px;
-            border-radius: 35px;
-            font-weight: 800;
-            width: 100%;
-            cursor: pointer;
-            font-size: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            display: none;
-        }
-
-        button#downloadBtn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(29, 185, 84, 0.3); }
-        #status { font-size: 0.8rem; margin-top: 1.5rem; color: #666; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #0f0f0f; color: #e0e0e0; margin: 0; }
+        .container { background: #1a1a1a; padding: 2.5rem; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.7); text-align: center; border: 1px solid #333; width: 350px; }
+        h2 { color: #00d4ff; margin-bottom: 0.5rem; }
+        p { font-size: 0.85rem; color: #888; margin-bottom: 1.5rem; }
+        input[type="file"] { margin: 20px 0; font-size: 0.8rem; width: 100%; }
+        button { background: #00d4ff; color: #000; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: transform 0.1s, background 0.2s; width: 100%; }
+        button:hover { background: #00b8e6; }
+        button:active { transform: scale(0.98); }
+        button:disabled { background: #444; color: #888; cursor: not-allowed; }
+        #status { margin-top: 20px; font-size: 0.9rem; color: #00d4ff; font-weight: 500; min-height: 1.2em; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>SpeedUp</h1>
-
-    <div class="file-input-wrapper">
-        <input type="file" id="audioInput" accept="audio/*">
-    </div>
-
-    <div class="control-group">
-        <label>Set Speed (e.g. 1.5, 5.0)</label>
-        <input type="number" id="speedInput" value="1.0" step="0.1" min="0.1">
-    </div>
-
-    <label>Loudness Boost</label>
-    <div class="modes">
-        <button class="mode-btn active" data-gain="1.0">Normal</button>
-        <button class="mode-btn" data-gain="5.0">Loud</button>
-        <button class="mode-btn" data-gain="20.0">Max</button>
-    </div>
-
-    <button id="downloadBtn">Render & Download</button>
-    <div id="status">Upload a song to begin.</div>
+    <h2>Speeder 0.222</h2>
+    <p>Renders at 1/0.222 speed for perfect restoration.</p>
+    <input type="file" id="audioInput" accept="audio/*">
+    <br>
+    <button id="processBtn">Process & Download</button>
+    <div id="status">Ready</div>
 </div>
 
 <script>
-    let audioBuffer = null;
-    let currentGain = 1.0;
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-
     const audioInput = document.getElementById('audioInput');
-    const speedInput = document.getElementById('speedInput');
-    const downloadBtn = document.getElementById('downloadBtn');
+    const processBtn = document.getElementById('processBtn');
     const status = document.getElementById('status');
-    const modeBtns = document.querySelectorAll('.mode-btn');
 
-    audioInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        status.innerText = "Decoding audio...";
+    processBtn.addEventListener('click', async () => {
+        if (!audioInput.files[0]) return alert("Please select a file first!");
+
+        const file = audioInput.files[0];
+        processBtn.disabled = true;
+        status.innerText = "Reading file...";
+        
         const arrayBuffer = await file.arrayBuffer();
-        audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-        status.innerText = "Audio loaded.";
-        downloadBtn.style.display = "block";
-    });
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        status.innerText = "Decoding...";
+        const decodedData = await audioCtx.decodeAudioData(arrayBuffer);
 
-    modeBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            modeBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentGain = parseFloat(btn.getAttribute('data-gain'));
-        });
-    });
-
-    downloadBtn.addEventListener('click', async () => {
-        if (!audioBuffer) return;
-
-        const speed = parseFloat(speedInput.value) || 1.0;
+        // Speed Factor: 1 / 0.222 = ~4.5045045
+        const speedFactor = 1 / 0.222; 
+        const newLength = Math.floor(decodedData.length / speedFactor);
+        
         const offlineCtx = new OfflineAudioContext(
-            audioBuffer.numberOfChannels,
-            audioBuffer.length / speed,
-            audioBuffer.sampleRate
+            decodedData.numberOfChannels,
+            newLength,
+            decodedData.sampleRate
         );
 
         const source = offlineCtx.createBufferSource();
-        source.buffer = audioBuffer;
-        source.playbackRate.value = speed;
+        source.buffer = decodedData;
+        
+        // Key for "Clean" sound: Resampling via playbackRate
+        source.playbackRate.value = speedFactor;
 
-        const gainNode = offlineCtx.createGain();
-        gainNode.gain.value = currentGain;
-
-        source.connect(gainNode);
-        gainNode.connect(offlineCtx.destination);
+        source.connect(offlineCtx.destination);
         source.start(0);
 
-        status.innerText = "Rendering sped-up file...";
-        downloadBtn.disabled = true;
-
+        status.innerText = "Processing (Speeding up)...";
         const renderedBuffer = await offlineCtx.startRendering();
-        downloadWav(renderedBuffer);
+
+        status.innerText = "Encoding to WAV...";
+        const wavBlob = bufferToWav(renderedBuffer);
         
-        status.innerText = "Done! Check your downloads.";
-        downloadBtn.disabled = false;
+        const url = URL.createObjectURL(wavBlob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        
+        // Custom naming convention: originalName-0.222.wav
+        const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+        anchor.download = `${originalName}-0.222.wav`;
+        
+        anchor.click();
+
+        status.innerText = "Done!";
+        processBtn.disabled = false;
+        
+        setTimeout(() => { status.innerText = "Ready"; }, 3000);
     });
 
-    function downloadWav(buffer) {
-        const length = buffer.length * buffer.numberOfChannels * 2 + 44;
-        const outBuffer = new ArrayBuffer(length);
-        const view = new DataView(outBuffer);
-        let offset = 0;
+    function bufferToWav(abuffer) {
+        let numOfChan = abuffer.numberOfChannels,
+            length = abuffer.length * numOfChan * 2 + 44,
+            buffer = new ArrayBuffer(length),
+            view = new DataView(buffer),
+            channels = [], i, sample,
+            offset = 0, pos = 0;
 
-        const writeString = (s) => {
-            for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i));
-            offset += s.length;
-        };
+        function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+        function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
 
-        writeString('RIFF');
-        view.setUint32(offset, length - 8, true); offset += 4;
-        writeString('WAVE');
-        writeString('fmt ');
-        view.setUint32(offset, 16, true); offset += 4;
-        view.setUint16(offset, 1, true); offset += 2;
-        view.setUint16(offset, buffer.numberOfChannels, true); offset += 2;
-        view.setUint32(offset, buffer.sampleRate, true); offset += 4;
-        view.setUint32(offset, buffer.sampleRate * 4, true); offset += 4;
-        view.setUint16(offset, buffer.numberOfChannels * 2, true); offset += 2;
-        view.setUint16(offset, 16, true); offset += 2;
-        writeString('data');
-        view.setUint32(offset, length - offset - 4, true); offset += 4;
+        setUint32(0x46464952); setUint32(length - 8); setUint32(0x45564157);
+        setUint32(0x20746d66); setUint32(16); setUint16(1); setUint16(numOfChan);
+        setUint32(abuffer.sampleRate); setUint32(abuffer.sampleRate * 2 * numOfChan);
+        setUint16(numOfChan * 2); setUint16(16); setUint32(0x61746164);
+        setUint32(length - pos - 4);
 
-        for (let i = 0; i < buffer.length; i++) {
-            for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
-                let s = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]));
-                view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-                offset += 2;
+        for(i = 0; i < numOfChan; i++) channels.push(abuffer.getChannelData(i));
+        while(pos < length) {
+            for(i = 0; i < numOfChan; i++) {
+                sample = Math.max(-1, Math.min(1, channels[i][offset]));
+                sample = (sample < 0 ? sample * 0x8000 : sample * 0x7FFF);
+                view.setInt16(pos, sample, true);
+                pos += 2;
             }
+            offset++;
         }
-
-        const blob = new Blob([view], { type: 'audio/wav' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `output_${speedInput.value}x.wav`;
-        a.click();
+        return new Blob([buffer], {type: "audio/wav"});
     }
 </script>
 
