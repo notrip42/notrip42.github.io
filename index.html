@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Audio Speed Inverter</title>
     <style>
-        /* Minimalist Dark Aesthetic */
         body {
             background-color: #000;
             color: #fff;
@@ -17,34 +16,21 @@
             margin: 0;
             text-transform: lowercase;
         }
-
         .container {
             width: 320px;
             border: 1px solid #333;
             padding: 30px;
             text-align: left;
         }
-
         h1 {
             font-size: 1.2rem;
             margin-bottom: 25px;
             border-bottom: 1px solid #333;
             padding-bottom: 10px;
         }
-
-        .input-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            font-size: 0.75rem;
-            color: #888;
-            margin-bottom: 8px;
-        }
-
-        input[type="number"], 
-        input[type="file"] {
+        .input-group { margin-bottom: 20px; }
+        label { display: block; font-size: 0.75rem; color: #888; margin-bottom: 8px; }
+        input {
             width: 100%;
             background: #000;
             border: 1px solid #333;
@@ -54,13 +40,7 @@
             box-sizing: border-box;
             outline: none;
         }
-
-        input[type="file"] {
-            font-size: 0.7rem;
-            border: none;
-            padding: 10px 0;
-        }
-
+        input[type="file"] { font-size: 0.7rem; border: none; padding: 10px 0; }
         button {
             width: 100%;
             background: #fff;
@@ -70,31 +50,15 @@
             font-family: inherit;
             cursor: pointer;
             font-weight: bold;
-            transition: all 0.2s ease;
         }
-
-        button:hover:not(:disabled) {
-            background: #000;
-            color: #fff;
-        }
-
-        button:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-
-        #status {
-            margin-top: 20px;
-            font-size: 0.7rem;
-            color: #666;
-            min-height: 1.2em;
-        }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+        #status { margin-top: 20px; font-size: 0.7rem; color: #666; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>speed.inv</h1>
+    <h1>speed.inv.v2</h1>
     
     <div class="input-group">
         <label>playback_speed</label>
@@ -122,54 +86,67 @@
     audioInput.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        status.textContent = "loading_buffer...";
+        status.textContent = "decoding_samples...";
         const arrayBuffer = await file.arrayBuffer();
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         originalBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-        status.textContent = "buffer_ready";
+        status.textContent = "samples_locked";
         processBtn.disabled = false;
     };
 
     processBtn.onclick = async () => {
         const targetSpeed = parseFloat(speedInput.value);
         const RATIO = 1 / targetSpeed;
-        const detuneValue = -1200 * Math.log2(RATIO);
 
-        status.textContent = "rendering_samples...";
+        status.textContent = "manual_resampling...";
         processBtn.disabled = true;
 
-        // Duration safety: Ratio calculation + 1 second padding
-        const newLength = Math.ceil(originalBuffer.length / RATIO) + (originalBuffer.sampleRate * 1);
+        // Give the UI a frame to update
+        setTimeout(() => {
+            const newNumSamples = Math.floor(originalBuffer.length / RATIO);
+            const offlineCtx = new OfflineAudioContext(
+                originalBuffer.numberOfChannels,
+                newNumSamples,
+                originalBuffer.sampleRate
+            );
 
-        const offlineCtx = new OfflineAudioContext(
-            originalBuffer.numberOfChannels,
-            newLength,
-            originalBuffer.sampleRate
-        );
+            // Create a new buffer manually to hold the sped-up data
+            const newBuffer = offlineCtx.createBuffer(
+                originalBuffer.numberOfChannels,
+                newNumSamples,
+                originalBuffer.sampleRate
+            );
 
-        const source = offlineCtx.createBufferSource();
-        source.buffer = originalBuffer;
-        
-        // Apply values at exact start time
-        source.playbackRate.setValueAtTime(RATIO, 0);
-        source.detune.setValueAtTime(detuneValue, 0);
+            // BRUTE FORCE RESAMPLING:
+            // We manually map old samples to new positions
+            for (let channel = 0; channel < originalBuffer.numberOfChannels; channel++) {
+                const oldData = originalBuffer.getChannelData(channel);
+                const newData = newBuffer.getChannelData(channel);
+                
+                for (let i = 0; i < newNumSamples; i++) {
+                    // Linear interpolation for smoother speed change
+                    let pos = i * RATIO;
+                    let index = Math.floor(pos);
+                    let frac = pos - index;
+                    
+                    if (index + 1 < oldData.length) {
+                        newData[i] = oldData[index] * (1 - frac) + oldData[index + 1] * frac;
+                    } else {
+                        newData[i] = oldData[index];
+                    }
+                }
+            }
 
-        source.connect(offlineCtx.destination);
-        source.start(0);
-
-        try {
-            const renderedBuffer = await offlineCtx.startRendering();
-            const wavBlob = bufferToWav(renderedBuffer);
+            const wavBlob = bufferToWav(newBuffer);
             const url = URL.createObjectURL(wavBlob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `inv_${targetSpeed}x.wav`;
+            a.download = `manual_inv_${targetSpeed}x.wav`;
             a.click();
+            
             status.textContent = "save_complete";
-        } catch (err) {
-            status.textContent = "error_rendering";
-        }
-        processBtn.disabled = false;
+            processBtn.disabled = false;
+        }, 100);
     };
 
     function bufferToWav(buffer) {
