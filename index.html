@@ -2,30 +2,113 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Fixed Pitch WAV Shifter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Speed Inverter</title>
     <style>
-        body { font-family: sans-serif; background: #121212; color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .card { background: #1e1e1e; padding: 30px; border-radius: 15px; text-align: center; border: 1px solid #333; width: 380px; }
-        h2 { color: #00ffcc; margin-top: 0; }
-        .box { background: #2a2a2a; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left; }
-        input { width: 100%; padding: 8px; margin: 10px 0; background: #121212; border: 1px solid #444; color: white; border-radius: 4px; box-sizing: border-box; }
-        button { background: #00ffcc; color: #121212; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        button:disabled { background: #444; cursor: not-allowed; }
-        #status { margin-top: 15px; font-size: 0.9rem; color: #888; }
+        /* Minimalist Dark Aesthetic */
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: "Courier New", Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-transform: lowercase;
+        }
+
+        .container {
+            width: 320px;
+            border: 1px solid #333;
+            padding: 30px;
+            text-align: left;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        input[type="number"], 
+        input[type="file"] {
+            width: 100%;
+            background: #000;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 8px;
+            font-family: inherit;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        input[type="file"] {
+            font-size: 0.7rem;
+            border: none;
+            padding: 10px 0;
+        }
+
+        button {
+            width: 100%;
+            background: #fff;
+            color: #000;
+            border: 1px solid #fff;
+            padding: 10px;
+            font-family: inherit;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+
+        button:hover:not(:disabled) {
+            background: #000;
+            color: #fff;
+        }
+
+        button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-top: 20px;
+            font-size: 0.7rem;
+            color: #666;
+            min-height: 1.2em;
+        }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>WAV Pitch Fixer</h2>
-    <div class="box">
-        <label>Intended Playback Speed:</label>
+<div class="container">
+    <h1>speed.inv</h1>
+    
+    <div class="input-group">
+        <label>playback_speed</label>
         <input type="number" id="targetSpeed" value="0.5" step="0.001">
-        <label>Upload File:</label>
+    </div>
+
+    <div class="input-group">
+        <label>source_file</label>
         <input type="file" id="audioInput" accept="audio/*">
     </div>
-    <button id="processBtn" disabled>Fix Pitch & Download</button>
-    <div id="status">Select a file to begin.</div>
+
+    <button id="processBtn" disabled>process_and_save</button>
+    
+    <div id="status">awaiting_input...</div>
 </div>
 
 <script>
@@ -39,84 +122,65 @@
     audioInput.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        status.textContent = "Decoding audio...";
+        status.textContent = "loading_buffer...";
         const arrayBuffer = await file.arrayBuffer();
-        const audioCtx = new AudioContext();
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         originalBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-        status.textContent = "Ready.";
+        status.textContent = "buffer_ready";
         processBtn.disabled = false;
     };
 
     processBtn.onclick = async () => {
         const targetSpeed = parseFloat(speedInput.value);
         const RATIO = 1 / targetSpeed;
-        
-        // Calculate the detune value needed to counteract the speed increase
-        // The formula is: 1200 * log2(original_speed / new_speed)
         const detuneValue = -1200 * Math.log2(RATIO);
 
-        status.textContent = "Processing pitch correction...";
+        status.textContent = "rendering_samples...";
         processBtn.disabled = true;
+
+        // Duration safety: Ratio calculation + 1 second padding
+        const newLength = Math.ceil(originalBuffer.length / RATIO) + (originalBuffer.sampleRate * 1);
 
         const offlineCtx = new OfflineAudioContext(
             originalBuffer.numberOfChannels,
-            Math.floor(originalBuffer.length / RATIO), 
+            newLength,
             originalBuffer.sampleRate
         );
 
         const source = offlineCtx.createBufferSource();
         source.buffer = originalBuffer;
         
-        // Apply speed
-        source.playbackRate.value = RATIO;
-        
-        // Apply manual pitch correction via detune
-        source.detune.value = detuneValue;
+        // Apply values at exact start time
+        source.playbackRate.setValueAtTime(RATIO, 0);
+        source.detune.setValueAtTime(detuneValue, 0);
 
         source.connect(offlineCtx.destination);
-        source.start();
+        source.start(0);
 
-        const renderedBuffer = await offlineCtx.startRendering();
-        
-        // Convert to WAV
-        const wavBlob = bufferToWav(renderedBuffer);
-        const url = URL.createObjectURL(wavBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `fixed_pitch_${targetSpeed}x.wav`;
-        a.click();
-        
-        status.textContent = "Success! File downloaded.";
+        try {
+            const renderedBuffer = await offlineCtx.startRendering();
+            const wavBlob = bufferToWav(renderedBuffer);
+            const url = URL.createObjectURL(wavBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `inv_${targetSpeed}x.wav`;
+            a.click();
+            status.textContent = "save_complete";
+        } catch (err) {
+            status.textContent = "error_rendering";
+        }
         processBtn.disabled = false;
     };
 
     function bufferToWav(buffer) {
-        let n = buffer.numberOfChannels,
-            s = buffer.sampleRate,
-            f = 1, b = 16,
-            ps = b / 8,
-            ba = n * ps,
-            bl = buffer.length * ba,
-            hl = 44,
-            ab = new ArrayBuffer(hl + bl),
-            v = new DataView(ab);
-
+        let n = buffer.numberOfChannels, s = buffer.sampleRate, f = 1, b = 16,
+            ps = b / 8, ba = n * ps, bl = buffer.length * ba, hl = 44,
+            ab = new ArrayBuffer(hl + bl), v = new DataView(ab);
         const ws = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
-
-        ws(0, 'RIFF');
-        v.setUint32(4, 36 + bl, true);
-        ws(8, 'WAVE');
-        ws(12, 'fmt ');
-        v.setUint32(16, 16, true);
-        v.setUint16(20, f, true);
-        v.setUint16(22, n, true);
-        v.setUint32(24, s, true);
-        v.setUint32(28, s * ba, true);
-        v.setUint16(32, ba, true);
-        v.setUint16(34, b, true);
-        ws(36, 'data');
-        v.setUint32(40, bl, true);
-
+        ws(0, 'RIFF'); v.setUint32(4, 36 + bl, true); ws(8, 'WAVE'); ws(12, 'fmt ');
+        v.setUint32(16, 16, true); v.setUint16(20, f, true); v.setUint16(22, n, true);
+        v.setUint32(24, s, true); v.setUint32(28, s * ba, true); v.setUint16(32, ba, true);
+        v.setUint16(34, b, true); ws(36, 'data'); v.setUint32(40, bl, true);
         let offset = 44;
         for (let i = 0; i < buffer.length; i++) {
             for (let c = 0; c < n; c++) {
