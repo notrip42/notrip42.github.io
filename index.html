@@ -3,207 +3,257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>audio.inv</title>
+    <title>SpeedUp & Boost</title>
     <style>
+        :root {
+            --primary: #1db954;
+            --bg: #0f0f0f;
+            --card: #1a1a1a;
+            --text: #ffffff;
+            --accent: #ff4d4d;
+        }
+
         body {
-            background-color: #000;
-            color: #fff;
-            font-family: "Courier New", Courier, monospace;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            text-transform: lowercase;
+            min-height: 100vh;
         }
 
         .container {
-            width: 320px;
-            border: 1px solid #222;
-            padding: 30px;
-            text-align: left;
+            background: var(--card);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+            border: 1px solid #333;
+            transition: transform 0.3s ease;
         }
 
-        h1 {
-            font-size: 1rem;
-            margin-bottom: 25px;
-            border-bottom: 1px solid #222;
-            padding-bottom: 10px;
-            color: #444;
-        }
+        h1 { font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -1px; }
+        p { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
 
-        .field {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            font-size: 0.7rem;
-            color: #555;
-            margin-bottom: 8px;
-        }
-
-        input {
-            width: 100%;
-            background: #000;
-            border: 1px solid #222;
-            color: #fff;
-            padding: 8px;
-            font-family: inherit;
-            box-sizing: border-box;
-            outline: none;
-            font-size: 0.8rem;
+        .file-input-wrapper {
+            margin-bottom: 1.5rem;
         }
 
         input[type="file"] {
-            border: none;
-            padding: 5px 0;
-            font-size: 0.65rem;
-            color: #888;
-        }
-
-        button {
-            width: 100%;
-            background: #fff;
-            color: #000;
-            border: 1px solid #fff;
+            background: #252525;
             padding: 10px;
-            font-family: inherit;
+            border-radius: 8px;
+            width: 100%;
             cursor: pointer;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        label { display: block; margin-bottom: 0.5rem; color: #bbb; font-size: 0.85rem; text-transform: uppercase; }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 5px;
+            accent-color: var(--primary);
+        }
+
+        .speed-val { text-align: center; font-size: 1.5rem; font-weight: bold; margin: 10px 0; color: var(--primary); }
+
+        .modes {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 2rem;
+        }
+
+        .mode-btn {
+            background: #252525;
+            border: 1px solid #444;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: 0.2s;
+        }
+
+        .mode-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .mode-btn:hover:not(.active) { background: #333; }
+
+        button#downloadBtn {
+            background: var(--primary);
+            color: black;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 30px;
             font-weight: bold;
-            font-size: 0.75rem;
-            margin-top: 10px;
+            width: 100%;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: 0.2s;
+            display: none;
         }
 
-        button:hover:not(:disabled) {
-            background: #000;
-            color: #fff;
-        }
+        button#downloadBtn:hover { transform: scale(1.02); filter: brightness(1.1); }
+        button#downloadBtn:disabled { background: #444; cursor: not-allowed; }
 
-        button:disabled {
-            opacity: 0.1;
-            cursor: not-allowed;
-        }
-
-        #status {
-            margin-top: 20px;
-            font-size: 0.65rem;
-            color: #333;
-            min-height: 1.2em;
-        }
+        #status { font-size: 0.8rem; margin-top: 1rem; color: var(--primary); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>system.warp_engine</h1>
-    
-    <div class="field">
-        <label>target_playback_speed</label>
-        <input type="number" id="targetSpeed" value="0.5" step="0.001">
-    </div>
+    <h1>SpeedUp</h1>
+    <p>Render high-speed audio in seconds.</p>
 
-    <div class="field">
-        <label>input_source</label>
+    <div class="file-input-wrapper">
         <input type="file" id="audioInput" accept="audio/*">
     </div>
 
-    <button id="processBtn" disabled>execute_resample</button>
-    
-    <div id="status">ready_for_input...</div>
+    <div class="control-group">
+        <label>Speed: <span id="speedValue">1.0</span>x</label>
+        <input type="range" id="speedRange" min="0.5" max="10.0" step="0.1" value="1.0">
+    </div>
+
+    <label>Loudness Mode</label>
+    <div class="modes">
+        <button class="mode-btn active" data-gain="1.0">Normal</button>
+        <button class="mode-btn" data-gain="5.0">Loud</button>
+        <button class="mode-btn" data-gain="20.0">EAR BLOWOUT</button>
+    </div>
+
+    <button id="downloadBtn">Render & Download</button>
+    <div id="status"></div>
 </div>
 
 <script>
+    let audioBuffer = null;
+    let currentGain = 1.0;
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
     const audioInput = document.getElementById('audioInput');
-    const speedInput = document.getElementById('targetSpeed');
-    const processBtn = document.getElementById('processBtn');
+    const speedRange = document.getElementById('speedRange');
+    const speedValue = document.getElementById('speedValue');
+    const downloadBtn = document.getElementById('downloadBtn');
     const status = document.getElementById('status');
+    const modeBtns = document.querySelectorAll('.mode-btn');
 
-    let sourceBuffer;
-
-    audioInput.onchange = async (e) => {
+    // Handle File Upload
+    audioInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        status.textContent = "decoding_stream...";
+
+        status.innerText = "Loading audio...";
         const arrayBuffer = await file.arrayBuffer();
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        sourceBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-        status.textContent = "stream_buffered";
-        processBtn.disabled = false;
-    };
+        audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+        
+        status.innerText = "Ready to render.";
+        downloadBtn.style.display = "block";
+    });
 
-    processBtn.onclick = async () => {
-        const speed = parseFloat(speedInput.value);
-        const RATIO = 1 / speed; // The inversion math
+    // Handle Speed UI
+    speedRange.addEventListener('input', () => {
+        speedValue.innerText = speedRange.value;
+    });
 
-        status.textContent = "running_manual_resample...";
-        processBtn.disabled = true;
+    // Handle Loud Modes
+    modeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            modeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentGain = parseFloat(btn.getAttribute('data-gain'));
+        });
+    });
 
-        // Force a small delay to let UI update
-        setTimeout(() => {
-            try {
-                const newLength = Math.floor(sourceBuffer.length / RATIO);
-                const numChannels = sourceBuffer.numberOfChannels;
-                const sampleRate = sourceBuffer.sampleRate;
+    // Rendering Engine
+    downloadBtn.addEventListener('click', async () => {
+        if (!audioBuffer) return;
 
-                // Create a blank buffer for the result
-                const audioCtx = new AudioContext();
-                const outBuffer = audioCtx.createBuffer(numChannels, newLength, sampleRate);
+        const speed = parseFloat(speedRange.value);
+        const duration = audioBuffer.duration / speed;
+        
+        status.innerText = "Rendering... please wait.";
+        downloadBtn.disabled = true;
 
-                for (let channel = 0; channel < numChannels; channel++) {
-                    const oldData = sourceBuffer.getChannelData(channel);
-                    const newData = outBuffer.getChannelData(channel);
+        // Use Offline Context for rendering
+        const offlineCtx = new OfflineAudioContext(
+            audioBuffer.numberOfChannels,
+            audioBuffer.length / speed,
+            audioBuffer.sampleRate
+        );
 
-                    for (let i = 0; i < newLength; i++) {
-                        // Linear Resampling Logic
-                        // This physically moves the samples closer together
-                        let pos = i * RATIO;
-                        let index = Math.floor(pos);
-                        let fraction = pos - index;
+        const source = offlineCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.playbackRate.value = speed;
 
-                        if (index + 1 < oldData.length) {
-                            newData[i] = oldData[index] * (1 - fraction) + oldData[index + 1] * fraction;
-                        } else {
-                            newData[i] = oldData[index];
-                        }
-                    }
-                }
+        const gainNode = offlineCtx.createGain();
+        gainNode.gain.value = currentGain;
 
-                status.textContent = "encoding_wav...";
-                const blob = bufferToWav(outBuffer);
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = `warped_${speed}x.wav`;
-                a.click();
-                
-                status.textContent = "process_complete";
-            } catch (err) {
-                status.textContent = "system_fault";
-                console.error(err);
-            }
-            processBtn.disabled = false;
-        }, 50);
-    };
+        source.connect(gainNode);
+        gainNode.connect(offlineCtx.destination);
+        source.start(0);
 
-    // Standard WAV Encoder
-    function bufferToWav(buffer) {
-        let n = buffer.numberOfChannels, s = buffer.sampleRate, f = 1, b = 16,
-            ps = b / 8, ba = n * ps, bl = buffer.length * ba, hl = 44,
-            ab = new ArrayBuffer(hl + bl), v = new DataView(ab);
-        const ws = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
-        ws(0, 'RIFF'); v.setUint32(4, 36 + bl, true); ws(8, 'WAVE'); ws(12, 'fmt ');
-        v.setUint32(16, 16, true); v.setUint16(20, f, true); v.setUint16(22, n, true);
-        v.setUint32(24, s, true); v.setUint32(28, s * ba, true); v.setUint16(32, ba, true);
-        v.setUint16(34, b, true); ws(36, 'data'); v.setUint32(40, bl, true);
-        let offset = 44;
+        const renderedBuffer = await offlineCtx.startRendering();
+        downloadWav(renderedBuffer);
+        
+        status.innerText = "Download complete!";
+        downloadBtn.disabled = false;
+    });
+
+    // Helper: Convert AudioBuffer to WAV format
+    function downloadWav(buffer) {
+        const length = buffer.length * buffer.numberOfChannels * 2 + 44;
+        const outBuffer = new ArrayBuffer(length);
+        const view = new DataView(outBuffer);
+        let offset = 0;
+
+        function writeString(s) {
+            for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i));
+            offset += s.length;
+        }
+
+        writeString('RIFF');
+        view.setUint32(offset, length - 8, true); offset += 4;
+        writeString('WAVE');
+        writeString('fmt ');
+        view.setUint32(offset, 16, true); offset += 4;
+        view.setUint16(offset, 1, true); offset += 2;
+        view.setUint16(offset, buffer.numberOfChannels, true); offset += 2;
+        view.setUint32(offset, buffer.sampleRate, true); offset += 4;
+        view.setUint32(offset, buffer.sampleRate * 4, true); offset += 4;
+        view.setUint16(offset, buffer.numberOfChannels * 2, true); offset += 2;
+        view.setUint16(offset, 16, true); offset += 2;
+        writeString('data');
+        view.setUint32(offset, length - offset - 4, true); offset += 4;
+
         for (let i = 0; i < buffer.length; i++) {
-            for (let c = 0; c < n; c++) {
-                let sample = Math.max(-1, Math.min(1, buffer.getChannelData(c)[i]));
-                v.setInt16(offset, sample < 0 ? sample * 32768 : sample * 32767, true);
+            for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+                let sample = buffer.getChannelData(channel)[i];
+                sample = Math.max(-1, Math.min(1, sample));
+                view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
                 offset += 2;
             }
         }
-        return new Blob([ab], { type: 'audio/wav' });
+
+        const blob = new Blob([view], { type: 'audio/wav' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sped_up_audio.wav`;
+        a.click();
     }
 </script>
 
