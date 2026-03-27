@@ -173,4 +173,39 @@
                 const blob = bufferToWav(outBuffer);
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
-                a.download = `warped_${speed}
+                a.download = `warped_${speed}x.wav`;
+                a.click();
+                
+                status.textContent = "process_complete";
+            } catch (err) {
+                status.textContent = "system_fault";
+                console.error(err);
+            }
+            processBtn.disabled = false;
+        }, 50);
+    };
+
+    // Standard WAV Encoder
+    function bufferToWav(buffer) {
+        let n = buffer.numberOfChannels, s = buffer.sampleRate, f = 1, b = 16,
+            ps = b / 8, ba = n * ps, bl = buffer.length * ba, hl = 44,
+            ab = new ArrayBuffer(hl + bl), v = new DataView(ab);
+        const ws = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+        ws(0, 'RIFF'); v.setUint32(4, 36 + bl, true); ws(8, 'WAVE'); ws(12, 'fmt ');
+        v.setUint32(16, 16, true); v.setUint16(20, f, true); v.setUint16(22, n, true);
+        v.setUint32(24, s, true); v.setUint32(28, s * ba, true); v.setUint16(32, ba, true);
+        v.setUint16(34, b, true); ws(36, 'data'); v.setUint32(40, bl, true);
+        let offset = 44;
+        for (let i = 0; i < buffer.length; i++) {
+            for (let c = 0; c < n; c++) {
+                let sample = Math.max(-1, Math.min(1, buffer.getChannelData(c)[i]));
+                v.setInt16(offset, sample < 0 ? sample * 32768 : sample * 32767, true);
+                offset += 2;
+            }
+        }
+        return new Blob([ab], { type: 'audio/wav' });
+    }
+</script>
+
+</body>
+</html>
