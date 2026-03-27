@@ -3,50 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Speed Factor 4.5045x</title>
+    <title>Audio Speeder 0.222 + Preview</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #0f0f0f; color: #e0e0e0; margin: 0; }
-        .container { background: #1a1a1a; padding: 2.5rem; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.7); text-align: center; border: 1px solid #333; width: 350px; }
-        h2 { color: #00d4ff; margin-bottom: 0.5rem; }
-        p { font-size: 0.85rem; color: #888; margin-bottom: 1.5rem; }
-        input[type="file"] { margin: 20px 0; font-size: 0.8rem; width: 100%; }
-        button { background: #00d4ff; color: #000; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: transform 0.1s, background 0.2s; width: 100%; }
-        button:hover { background: #00b8e6; }
-        button:active { transform: scale(0.98); }
-        button:disabled { background: #444; color: #888; cursor: not-allowed; }
-        #status { margin-top: 20px; font-size: 0.9rem; color: #00d4ff; font-weight: 500; min-height: 1.2em; }
+        body { font-family: 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #0b0e14; color: #e0e0e0; margin: 0; }
+        .container { background: #161b22; padding: 2.5rem; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); text-align: center; border: 1px solid #30363d; width: 400px; }
+        h2 { color: #58a6ff; margin: 0 0 10px 0; }
+        .info { font-size: 0.8rem; color: #8b949e; margin-bottom: 20px; line-height: 1.4; }
+        input[type="file"] { margin: 20px 0; font-size: 0.8rem; color: #c9d1d9; }
+        .btn-group { display: flex; flex-direction: column; gap: 10px; }
+        button { background: #238636; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        button:hover { background: #2ea043; }
+        button:disabled { background: #21262d; color: #484f58; cursor: not-allowed; border: 1px solid #30363d; }
+        #previewBtn { background: #1f6feb; }
+        #previewBtn:hover { background: #388bfd; }
+        #status { margin-top: 20px; font-size: 0.9rem; color: #58a6ff; font-family: monospace; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>Speeder 0.222</h2>
-    <p>Renders at 1/0.222 speed for perfect restoration.</p>
+    <p class="info">Speeds up by 4.5045x.<br>Restores perfectly when played at 0.222x.</p>
+    
     <input type="file" id="audioInput" accept="audio/*">
-    <br>
-    <button id="processBtn">Process & Download</button>
+    
+    <div class="btn-group">
+        <button id="processBtn">Render & Download (.wav)</button>
+        <button id="previewBtn" class="hidden">Play Restore Preview</button>
+    </div>
+
     <div id="status">Ready</div>
 </div>
 
 <script>
     const audioInput = document.getElementById('audioInput');
     const processBtn = document.getElementById('processBtn');
+    const previewBtn = document.getElementById('previewBtn');
     const status = document.getElementById('status');
+    
+    let processedBuffer = null;
+    let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let currentSource = null;
 
     processBtn.addEventListener('click', async () => {
-        if (!audioInput.files[0]) return alert("Please select a file first!");
+        if (!audioInput.files[0]) return alert("Please select a file.");
 
         const file = audioInput.files[0];
         processBtn.disabled = true;
-        status.innerText = "Reading file...";
-        
+        status.innerText = "Processing...";
+
         const arrayBuffer = await file.arrayBuffer();
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        status.innerText = "Decoding...";
         const decodedData = await audioCtx.decodeAudioData(arrayBuffer);
 
-        // Speed Factor: 1 / 0.222 = ~4.5045045
         const speedFactor = 1 / 0.222; 
         const newLength = Math.floor(decodedData.length / speedFactor);
         
@@ -58,33 +67,47 @@
 
         const source = offlineCtx.createBufferSource();
         source.buffer = decodedData;
-        
-        // Key for "Clean" sound: Resampling via playbackRate
-        source.playbackRate.value = speedFactor;
-
+        source.playbackRate.value = speedFactor; // Resampling (Speed + Pitch)
         source.connect(offlineCtx.destination);
         source.start(0);
 
-        status.innerText = "Processing (Speeding up)...";
-        const renderedBuffer = await offlineCtx.startRendering();
-
-        status.innerText = "Encoding to WAV...";
-        const wavBlob = bufferToWav(renderedBuffer);
+        processedBuffer = await offlineCtx.startRendering();
         
+        // Trigger Download
+        const wavBlob = bufferToWav(processedBuffer);
         const url = URL.createObjectURL(wavBlob);
         const anchor = document.createElement('a');
-        anchor.href = url;
-        
-        // Custom naming convention: originalName-0.222.wav
         const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-        anchor.download = `${originalName}-0.222.wav`;
         
+        anchor.href = url;
+        anchor.download = `${originalName}-0.222.wav`;
         anchor.click();
 
-        status.innerText = "Done!";
+        status.innerText = "Download Started!";
+        previewBtn.classList.remove('hidden');
         processBtn.disabled = false;
+    });
+
+    previewBtn.addEventListener('click', () => {
+        if (currentSource) {
+            currentSource.stop();
+            currentSource = null;
+            previewBtn.innerText = "Play Restore Preview";
+            return;
+        }
+
+        // To "Restore" it, we play the high-speed buffer at 0.222x speed
+        currentSource = audioCtx.createBufferSource();
+        currentSource.buffer = processedBuffer;
+        currentSource.playbackRate.value = 0.222; 
+        currentSource.connect(audioCtx.destination);
+        currentSource.start(0);
         
-        setTimeout(() => { status.innerText = "Ready"; }, 3000);
+        previewBtn.innerText = "Stop Preview";
+        currentSource.onended = () => {
+            previewBtn.innerText = "Play Restore Preview";
+            currentSource = null;
+        };
     });
 
     function bufferToWav(abuffer) {
@@ -92,11 +115,10 @@
             length = abuffer.length * numOfChan * 2 + 44,
             buffer = new ArrayBuffer(length),
             view = new DataView(buffer),
-            channels = [], i, sample,
-            offset = 0, pos = 0;
+            channels = [], i, sample, offset = 0, pos = 0;
 
-        function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
-        function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+        const setUint16 = (d) => { view.setUint16(pos, d, true); pos += 2; };
+        const setUint32 = (d) => { view.setUint32(pos, d, true); pos += 4; };
 
         setUint32(0x46464952); setUint32(length - 8); setUint32(0x45564157);
         setUint32(0x20746d66); setUint32(16); setUint16(1); setUint16(numOfChan);
