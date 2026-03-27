@@ -3,55 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Custom Audio Speed Processor</title>
+    <title>Custom Audio to MP3 Inverter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.all.min.js"></script>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             display: flex; justify-content: center; align-items: center; min-height: 100vh; 
-            margin: 0; background: #121212; color: #eee; 
+            margin: 0; background: #0f172a; color: #f8fafc; 
         }
         .card { 
-            background: #1e1e1e; padding: 2.5rem; border-radius: 16px; 
+            background: #1e293b; padding: 2.5rem; border-radius: 16px; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; 
-            width: 100%; max-width: 420px; border: 1px solid #333; 
+            width: 100%; max-width: 420px; border: 1px solid #334155; 
         }
-        h2 { margin-top: 0; color: #00d4ff; }
-        .info { font-size: 0.95rem; color: #aaa; margin-bottom: 20px; line-height: 1.4; }
+        h2 { margin-top: 0; color: #38bdf8; }
+        .info { font-size: 0.95rem; color: #94a3b8; margin-bottom: 20px; line-height: 1.4; }
         
         .input-group {
-            background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 20px;
-            text-align: left;
+            background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 20px;
+            text-align: left; border: 1px solid #334155;
         }
-        .input-group label { display: block; font-size: 0.85rem; color: #888; margin-bottom: 8px; }
+        .input-group label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; }
         .input-group input[type="number"] {
-            width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #444;
-            background: #121212; color: #fff; font-size: 1rem; box-sizing: border-box;
+            width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #475569;
+            background: #1e293b; color: #fff; font-size: 1rem; box-sizing: border-box;
         }
-        .input-group input[type="file"] { width: 100%; color: #ddd; margin-top: 5px; }
+        .input-group input[type="file"] { width: 100%; color: #cbd5e1; margin-top: 5px; }
         
-        #multiplier-display { font-weight: bold; color: #00d4ff; display: block; margin-top: 10px; text-align: center;}
+        #multiplier-display { font-weight: bold; color: #38bdf8; display: block; margin-top: 10px; text-align: center;}
         
         button { 
-            background: #00d4ff; color: #000; border: none; padding: 14px 24px; 
+            background: #38bdf8; color: #0f172a; border: none; padding: 14px 24px; 
             border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; 
             transition: transform 0.2s, background 0.2s; width: 100%; 
         }
-        button:hover:not(:disabled) { background: #00b8e6; transform: translateY(-1px); }
-        button:disabled { background: #444; color: #777; cursor: not-allowed; }
+        button:hover:not(:disabled) { background: #7dd3fc; transform: translateY(-1px); }
+        button:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; }
         
-        #status { margin-top: 20px; font-size: 0.9rem; height: 1.2em; color: #bbb; }
+        #status { margin-top: 20px; font-size: 0.9rem; height: 1.2em; color: #cbd5e1; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>Audio Speed Inverter</h2>
+    <h2>MP3 Speed Inverter</h2>
     <div class="info">
-        Enter the speed you plan to play the audio at later. The tool will speed it up perfectly to match.
+        Enter your target playback speed. The tool will speed it up and export an MP3 to match.
     </div>
     
     <div class="input-group">
-        <label for="targetSpeed">Intended Playback Speed (e.g., 0.222, 0.5):</label>
+        <label for="targetSpeed">Intended Playback Speed (e.g., 0.222):</label>
         <input type="number" id="targetSpeed" value="0.222" step="0.001" min="0.01">
         <span id="multiplier-display">Processing multiplier: 4.50x</span>
     </div>
@@ -61,7 +62,7 @@
         <input type="file" id="audioInput" accept="audio/*">
     </div>
 
-    <button id="processBtn" disabled>Process & Download .WAV</button>
+    <button id="processBtn" disabled>Process & Download .MP3</button>
     <div id="status">Select an audio file to begin.</div>
 </div>
 
@@ -74,7 +75,7 @@
 
     let originalBuffer;
 
-    // Update the visual multiplier when the user types a new speed
+    // Update the visual multiplier dynamically
     speedInput.addEventListener('input', () => {
         const speed = parseFloat(speedInput.value);
         if (speed > 0) {
@@ -85,7 +86,7 @@
         }
     });
 
-    // Handle file upload
+    // Handle file upload and decode audio
     audioInput.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -96,14 +97,14 @@
         
         try {
             originalBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-            status.textContent = "Ready to process.";
+            status.textContent = "Audio loaded. Ready to process.";
             processBtn.disabled = false;
         } catch (err) {
             status.textContent = "Error loading audio file.";
         }
     };
 
-    // Handle processing and download
+    // Handle processing and MP3 encoding
     processBtn.onclick = async () => {
         const targetSpeed = parseFloat(speedInput.value);
         if (!targetSpeed || targetSpeed <= 0) {
@@ -112,10 +113,10 @@
         }
 
         const RATIO = 1 / targetSpeed;
-        status.textContent = `Processing at ${RATIO.toFixed(2)}x... please wait.`;
+        status.textContent = `Warping audio at ${RATIO.toFixed(2)}x...`;
         processBtn.disabled = true;
 
-        // Create offline context for rendering
+        // Create offline context for rendering at the new speed
         const offlineCtx = new OfflineAudioContext(
             originalBuffer.numberOfChannels,
             Math.floor(originalBuffer.length / RATIO), 
@@ -129,69 +130,65 @@
         source.connect(offlineCtx.destination);
         source.start();
 
-        // Render to buffer
         const renderedBuffer = await offlineCtx.startRendering();
         
-        // Convert to WAV and Download
-        status.textContent = "Encoding file...";
-        const wavBlob = bufferToWav(renderedBuffer);
-        const url = URL.createObjectURL(wavBlob);
+        status.textContent = "Encoding MP3... (This may take a moment)";
         
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `inverted_${targetSpeed}x_speed.wav`;
-        link.click();
+        // Use a slight delay so the UI can update before heavy MP3 encoding starts
+        setTimeout(() => {
+            try {
+                const mp3Blob = encodeMP3(renderedBuffer);
+                const url = URL.createObjectURL(mp3Blob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                // Automatically name the file based on the user's input speed
+                link.download = `inverted_${targetSpeed}x_speed.mp3`;
+                link.click();
 
-        status.textContent = "Success! File downloaded.";
-        processBtn.disabled = false;
+                status.textContent = "Success! MP3 Downloaded.";
+            } catch (error) {
+                status.textContent = "Error encoding MP3.";
+                console.error(error);
+            }
+            processBtn.disabled = false;
+        }, 100);
     };
 
-    // Helper: AudioBuffer to WAV Blob
-    function bufferToWav(buffer) {
-        const numChannels = buffer.numberOfChannels;
+    // Helper: AudioBuffer to MP3 Blob using LameJS
+    function encodeMP3(buffer) {
+        const channels = buffer.numberOfChannels;
         const sampleRate = buffer.sampleRate;
-        const format = 1; // PCM
-        const bitDepth = 16;
-        
-        const bytesPerSample = bitDepth / 8;
-        const blockAlign = numChannels * bytesPerSample;
-        
-        const bufferLength = buffer.length * blockAlign;
-        const headerLength = 44;
-        const wavBuffer = new ArrayBuffer(headerLength + bufferLength);
-        const view = new DataView(wavBuffer);
-        
-        const writeString = (offset, string) => {
-            for (let i = 0; i < string.length; i++) {
-                view.setUint8(offset + i, string.charCodeAt(i));
-            }
-        };
+        const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128); // 128kbps bitrate
+        const mp3Data = [];
 
-        writeString(0, 'RIFF');
-        view.setUint32(4, 36 + bufferLength, true);
-        writeString(8, 'WAVE');
-        writeString(12, 'fmt ');
-        view.setUint32(16, 16, true);
-        view.setUint16(20, format, true);
-        view.setUint16(22, numChannels, true);
-        view.setUint32(24, sampleRate, true);
-        view.setUint32(28, sampleRate * blockAlign, true);
-        view.setUint16(32, blockAlign, true);
-        view.setUint16(34, bitDepth, true);
-        writeString(36, 'data');
-        view.setUint32(40, bufferLength, true);
+        // Get sample data for channels
+        const left = buffer.getChannelData(0);
+        const right = channels > 1 ? buffer.getChannelData(1) : left;
 
-        let offset = 44;
-        for (let i = 0; i < buffer.length; i++) {
-            for (let channel = 0; channel < numChannels; channel++) {
-                let sample = buffer.getChannelData(channel)[i];
-                sample = Math.max(-1, Math.min(1, sample));
-                sample = sample < 0 ? sample * 32768 : sample * 32767;
-                view.setInt16(offset, sample, true);
-                offset += 2;
+        const sampleBlockSize = 1152; // Standard chunk size for MP3 encoding
+        
+        for (let i = 0; i < left.length; i += sampleBlockSize) {
+            const leftChunk = left.subarray(i, i + sampleBlockSize);
+            const rightChunk = right.subarray(i, i + sampleBlockSize);
+            
+            // Convert Float32 (Web Audio API standard) to Int16 (LameJS requirement)
+            const leftInt16 = new Int16Array(leftChunk.length);
+            const rightInt16 = new Int16Array(rightChunk.length);
+            
+            for (let j = 0; j < leftChunk.length; j++) {
+                leftInt16[j] = leftChunk[j] < 0 ? leftChunk[j] * 0x8000 : leftChunk[j] * 0x7FFF;
+                rightInt16[j] = rightChunk[j] < 0 ? rightChunk[j] * 0x8000 : rightChunk[j] * 0x7FFF;
             }
+
+            const mp3buf = mp3encoder.encodeBuffer(leftInt16, rightInt16);
+            if (mp3buf.length > 0) mp3Data.push(mp3buf);
         }
-        return new Blob([wavBuffer], { type: 'audio/wav' });
+
+        const mp3buf = mp3encoder.flush();
+        if (mp3buf.length > 0) mp3Data.push(mp3buf);
+
+        return new Blob(mp3Data, { type: 'audio/mp3' });
     }
 </script>
 
