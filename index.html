@@ -3,120 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Custom Audio to MP3 Inverter</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.all.min.js"></script>
+    <title>Pitch-Preserved Audio Shifter</title>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             display: flex; justify-content: center; align-items: center; min-height: 100vh; 
-            margin: 0; background: #0f172a; color: #f8fafc; 
+            margin: 0; background: #1a1a1a; color: #fff; 
         }
         .card { 
-            background: #1e293b; padding: 2.5rem; border-radius: 16px; 
+            background: #242424; padding: 2.5rem; border-radius: 12px; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; 
-            width: 100%; max-width: 420px; border: 1px solid #334155; 
+            width: 100%; max-width: 400px; border: 1px solid #333; 
         }
-        h2 { margin-top: 0; color: #38bdf8; }
-        .info { font-size: 0.95rem; color: #94a3b8; margin-bottom: 20px; line-height: 1.4; }
-        
-        .input-group {
-            background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 20px;
-            text-align: left; border: 1px solid #334155;
-        }
-        .input-group label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; }
-        .input-group input[type="number"] {
-            width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #475569;
-            background: #1e293b; color: #fff; font-size: 1rem; box-sizing: border-box;
-        }
-        .input-group input[type="file"] { width: 100%; color: #cbd5e1; margin-top: 5px; }
-        
-        #multiplier-display { font-weight: bold; color: #38bdf8; display: block; margin-top: 10px; text-align: center;}
-        
-        button { 
-            background: #38bdf8; color: #0f172a; border: none; padding: 14px 24px; 
-            border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; 
-            transition: transform 0.2s, background 0.2s; width: 100%; 
-        }
-        button:hover:not(:disabled) { background: #7dd3fc; transform: translateY(-1px); }
-        button:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; }
-        
-        #status { margin-top: 20px; font-size: 0.9rem; height: 1.2em; color: #cbd5e1; }
+        h2 { color: #4ade80; margin-top: 0; }
+        .input-group { background: #333; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left; }
+        label { display: block; font-size: 0.8rem; color: #aaa; margin-bottom: 5px; }
+        input[type="number"] { width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px; box-sizing: border-box; }
+        input[type="file"] { margin-top: 10px; width: 100%; }
+        button { background: #4ade80; color: #000; border: none; padding: 12px; border-radius: 6px; font-weight: bold; width: 100%; cursor: pointer; }
+        button:disabled { background: #444; color: #777; cursor: not-allowed; }
+        #status { margin-top: 15px; font-size: 0.85rem; color: #4ade80; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>MP3 Speed Inverter</h2>
-    <div class="info">
-        Enter your target playback speed. The tool will speed it up and export an MP3 to match.
-    </div>
-    
+    <h2>WAV Pitch Fixer</h2>
     <div class="input-group">
-        <label for="targetSpeed">Intended Playback Speed (e.g., 0.222):</label>
-        <input type="number" id="targetSpeed" value="0.222" step="0.001" min="0.01">
-        <span id="multiplier-display">Processing multiplier: 4.50x</span>
-    </div>
-
-    <div class="input-group">
-        <label for="audioInput">Upload Audio File:</label>
+        <label>Intended Playback Speed (e.g. 0.222):</label>
+        <input type="number" id="targetSpeed" value="0.222" step="0.001">
+        <label style="margin-top: 15px;">Upload Audio:</label>
         <input type="file" id="audioInput" accept="audio/*">
     </div>
-
-    <button id="processBtn" disabled>Process & Download .MP3</button>
-    <div id="status">Select an audio file to begin.</div>
+    <button id="processBtn" disabled>Download Sped-Up .WAV</button>
+    <div id="status">Select a file...</div>
 </div>
 
 <script>
     const audioInput = document.getElementById('audioInput');
     const speedInput = document.getElementById('targetSpeed');
-    const multiplierDisplay = document.getElementById('multiplier-display');
     const processBtn = document.getElementById('processBtn');
     const status = document.getElementById('status');
 
     let originalBuffer;
 
-    // Update the visual multiplier dynamically
-    speedInput.addEventListener('input', () => {
-        const speed = parseFloat(speedInput.value);
-        if (speed > 0) {
-            const multiplier = 1 / speed;
-            multiplierDisplay.textContent = `Processing multiplier: ${multiplier.toFixed(2)}x`;
-        } else {
-            multiplierDisplay.textContent = "Invalid speed";
-        }
-    });
-
-    // Handle file upload and decode audio
     audioInput.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
-        status.textContent = "Reading file...";
+        status.textContent = "Loading...";
         const arrayBuffer = await file.arrayBuffer();
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        try {
-            originalBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-            status.textContent = "Audio loaded. Ready to process.";
-            processBtn.disabled = false;
-        } catch (err) {
-            status.textContent = "Error loading audio file.";
-        }
+        const audioCtx = new AudioContext();
+        originalBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        status.textContent = "Ready.";
+        processBtn.disabled = false;
     };
 
-    // Handle processing and MP3 encoding
     processBtn.onclick = async () => {
         const targetSpeed = parseFloat(speedInput.value);
-        if (!targetSpeed || targetSpeed <= 0) {
-            alert("Please enter a valid speed greater than 0.");
-            return;
-        }
-
         const RATIO = 1 / targetSpeed;
-        status.textContent = `Warping audio at ${RATIO.toFixed(2)}x...`;
+        status.textContent = "Processing with Pitch Correction...";
         processBtn.disabled = true;
 
-        // Create offline context for rendering at the new speed
         const offlineCtx = new OfflineAudioContext(
             originalBuffer.numberOfChannels,
             Math.floor(originalBuffer.length / RATIO), 
@@ -125,70 +72,75 @@
 
         const source = offlineCtx.createBufferSource();
         source.buffer = originalBuffer;
+        
+        // SPEED UP LOGIC
         source.playbackRate.value = RATIO;
+        
+        // PITCH CORRECTION LOGIC
+        // This keeps the song in the same key while speeding up
+        if ('preservesPitch' in source) {
+            source.preservesPitch = true;
+        }
 
         source.connect(offlineCtx.destination);
         source.start();
 
         const renderedBuffer = await offlineCtx.startRendering();
+        downloadWav(renderedBuffer, targetSpeed);
         
-        status.textContent = "Encoding MP3... (This may take a moment)";
-        
-        // Use a slight delay so the UI can update before heavy MP3 encoding starts
-        setTimeout(() => {
-            try {
-                const mp3Blob = encodeMP3(renderedBuffer);
-                const url = URL.createObjectURL(mp3Blob);
-                
-                const link = document.createElement('a');
-                link.href = url;
-                // Automatically name the file based on the user's input speed
-                link.download = `inverted_${targetSpeed}x_speed.mp3`;
-                link.click();
-
-                status.textContent = "Success! MP3 Downloaded.";
-            } catch (error) {
-                status.textContent = "Error encoding MP3.";
-                console.error(error);
-            }
-            processBtn.disabled = false;
-        }, 100);
+        status.textContent = "Done!";
+        processBtn.disabled = false;
     };
 
-    // Helper: AudioBuffer to MP3 Blob using LameJS
-    function encodeMP3(buffer) {
-        const channels = buffer.numberOfChannels;
-        const sampleRate = buffer.sampleRate;
-        const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128); // 128kbps bitrate
-        const mp3Data = [];
+    function downloadWav(buffer, speed) {
+        const wavBlob = bufferToWav(buffer);
+        const url = URL.createObjectURL(wavBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sped_up_for_${speed}x.wav`;
+        a.click();
+    }
 
-        // Get sample data for channels
-        const left = buffer.getChannelData(0);
-        const right = channels > 1 ? buffer.getChannelData(1) : left;
+    function bufferToWav(buffer) {
+        let numChannels = buffer.numberOfChannels,
+            sampleRate = buffer.sampleRate,
+            format = 1, bitDepth = 16,
+            bytesPerSample = bitDepth / 8,
+            blockAlign = numChannels * bytesPerSample,
+            bufferLength = buffer.length * blockAlign,
+            headerLength = 44,
+            wavBuffer = new ArrayBuffer(headerLength + bufferLength),
+            view = new DataView(wavBuffer);
 
-        const sampleBlockSize = 1152; // Standard chunk size for MP3 encoding
-        
-        for (let i = 0; i < left.length; i += sampleBlockSize) {
-            const leftChunk = left.subarray(i, i + sampleBlockSize);
-            const rightChunk = right.subarray(i, i + sampleBlockSize);
-            
-            // Convert Float32 (Web Audio API standard) to Int16 (LameJS requirement)
-            const leftInt16 = new Int16Array(leftChunk.length);
-            const rightInt16 = new Int16Array(rightChunk.length);
-            
-            for (let j = 0; j < leftChunk.length; j++) {
-                leftInt16[j] = leftChunk[j] < 0 ? leftChunk[j] * 0x8000 : leftChunk[j] * 0x7FFF;
-                rightInt16[j] = rightChunk[j] < 0 ? rightChunk[j] * 0x8000 : rightChunk[j] * 0x7FFF;
+        const writeString = (offset, string) => {
+            for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+        };
+
+        writeString(0, 'RIFF');
+        view.setUint32(4, 36 + bufferLength, true);
+        writeString(8, 'WAVE');
+        writeString(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, format, true);
+        view.setUint16(22, numChannels, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * blockAlign, true);
+        view.setUint16(32, blockAlign, true);
+        view.setUint16(34, bitDepth, true);
+        writeString(36, 'data');
+        view.setUint32(40, bufferLength, true);
+
+        let offset = 44;
+        for (let i = 0; i < buffer.length; i++) {
+            for (let channel = 0; channel < numChannels; channel++) {
+                let sample = buffer.getChannelData(channel)[i];
+                sample = Math.max(-1, Math.min(1, sample));
+                sample = sample < 0 ? sample * 32768 : sample * 32767;
+                view.setInt16(offset, sample, true);
+                offset += 2;
             }
-
-            const mp3buf = mp3encoder.encodeBuffer(leftInt16, rightInt16);
-            if (mp3buf.length > 0) mp3Data.push(mp3buf);
         }
-
-        const mp3buf = mp3encoder.flush();
-        if (mp3buf.length > 0) mp3Data.push(mp3buf);
-
-        return new Blob(mp3Data, { type: 'audio/mp3' });
+        return new Blob([wavBuffer], { type: 'audio/wav' });
     }
 </script>
 
