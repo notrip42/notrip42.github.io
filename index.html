@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpeedUp & Boost</title>
+    <title>SpeedUp Precision</title>
     <style>
         :root {
             --primary: #1db954;
             --bg: #0f0f0f;
             --card: #1a1a1a;
             --text: #ffffff;
-            --accent: #ff4d4d;
+            --input-bg: #252525;
         }
 
         body {
@@ -30,43 +30,64 @@
             border-radius: 20px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.6);
             width: 90%;
-            max-width: 450px;
+            max-width: 400px;
             text-align: center;
             border: 1px solid #333;
-            transition: transform 0.3s ease;
         }
 
-        h1 { font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -1px; }
-        p { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
+        h1 { font-weight: 800; margin-bottom: 2rem; letter-spacing: -1px; }
 
-        .file-input-wrapper {
-            margin-bottom: 1.5rem;
-        }
-
+        .file-input-wrapper { margin-bottom: 2rem; }
+        
         input[type="file"] {
-            background: #252525;
-            padding: 10px;
-            border-radius: 8px;
+            background: var(--input-bg);
+            padding: 12px;
+            border-radius: 10px;
             width: 100%;
+            color: #888;
+            border: 1px solid #333;
             cursor: pointer;
         }
 
         .control-group {
-            margin-bottom: 1.5rem;
-            text-align: left;
+            margin-bottom: 2rem;
+            text-align: center;
         }
 
-        label { display: block; margin-bottom: 0.5rem; color: #bbb; font-size: 0.85rem; text-transform: uppercase; }
-
-        input[type="range"] {
-            width: 100%;
-            height: 6px;
-            background: #333;
-            border-radius: 5px;
-            accent-color: var(--primary);
+        label { 
+            display: block; 
+            margin-bottom: 0.8rem; 
+            color: #888; 
+            font-size: 0.75rem; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
         }
 
-        .speed-val { text-align: center; font-size: 1.5rem; font-weight: bold; margin: 10px 0; color: var(--primary); }
+        /* The Styled Text/Number Field */
+        input[type="number"] {
+            background: var(--input-bg);
+            border: 1px solid #444;
+            color: var(--primary);
+            font-size: 2rem;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 12px;
+            width: 120px;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            border-color: var(--primary);
+        }
+
+        /* Remove arrows from number input */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
 
         .modes {
             display: grid;
@@ -76,67 +97,65 @@
         }
 
         .mode-btn {
-            background: #252525;
+            background: var(--input-bg);
             border: 1px solid #444;
             color: white;
-            padding: 10px;
-            border-radius: 8px;
+            padding: 12px;
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             transition: 0.2s;
         }
 
         .mode-btn.active {
             background: var(--primary);
             border-color: var(--primary);
+            color: black;
+            font-weight: bold;
         }
-
-        .mode-btn:hover:not(.active) { background: #333; }
 
         button#downloadBtn {
             background: var(--primary);
             color: black;
             border: none;
-            padding: 15px 30px;
-            border-radius: 30px;
-            font-weight: bold;
+            padding: 18px;
+            border-radius: 35px;
+            font-weight: 800;
             width: 100%;
             cursor: pointer;
             font-size: 1rem;
-            transition: 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             display: none;
         }
 
-        button#downloadBtn:hover { transform: scale(1.02); filter: brightness(1.1); }
-        button#downloadBtn:disabled { background: #444; cursor: not-allowed; }
-
-        #status { font-size: 0.8rem; margin-top: 1rem; color: var(--primary); }
+        button#downloadBtn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(29, 185, 84, 0.3); }
+        #status { font-size: 0.8rem; margin-top: 1.5rem; color: #666; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>SpeedUp</h1>
-    <p>Render high-speed audio in seconds.</p>
 
     <div class="file-input-wrapper">
         <input type="file" id="audioInput" accept="audio/*">
     </div>
 
     <div class="control-group">
-        <label>Speed: <span id="speedValue">1.0</span>x</label>
-        <input type="range" id="speedRange" min="0.5" max="10.0" step="0.1" value="1.0">
+        <label>Set Speed (e.g. 1.5, 5.0)</label>
+        <input type="number" id="speedInput" value="1.0" step="0.1" min="0.1">
     </div>
 
-    <label>Loudness Mode</label>
+    <label>Loudness Boost</label>
     <div class="modes">
         <button class="mode-btn active" data-gain="1.0">Normal</button>
         <button class="mode-btn" data-gain="5.0">Loud</button>
-        <button class="mode-btn" data-gain="20.0">EAR BLOWOUT</button>
+        <button class="mode-btn" data-gain="20.0">Max</button>
     </div>
 
     <button id="downloadBtn">Render & Download</button>
-    <div id="status"></div>
+    <div id="status">Upload a song to begin.</div>
 </div>
 
 <script>
@@ -145,31 +164,21 @@
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
 
     const audioInput = document.getElementById('audioInput');
-    const speedRange = document.getElementById('speedRange');
-    const speedValue = document.getElementById('speedValue');
+    const speedInput = document.getElementById('speedInput');
     const downloadBtn = document.getElementById('downloadBtn');
     const status = document.getElementById('status');
     const modeBtns = document.querySelectorAll('.mode-btn');
 
-    // Handle File Upload
     audioInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
-        status.innerText = "Loading audio...";
+        status.innerText = "Decoding audio...";
         const arrayBuffer = await file.arrayBuffer();
         audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-        
-        status.innerText = "Ready to render.";
+        status.innerText = "Audio loaded.";
         downloadBtn.style.display = "block";
     });
 
-    // Handle Speed UI
-    speedRange.addEventListener('input', () => {
-        speedValue.innerText = speedRange.value;
-    });
-
-    // Handle Loud Modes
     modeBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             modeBtns.forEach(b => b.classList.remove('active'));
@@ -178,17 +187,10 @@
         });
     });
 
-    // Rendering Engine
     downloadBtn.addEventListener('click', async () => {
         if (!audioBuffer) return;
 
-        const speed = parseFloat(speedRange.value);
-        const duration = audioBuffer.duration / speed;
-        
-        status.innerText = "Rendering... please wait.";
-        downloadBtn.disabled = true;
-
-        // Use Offline Context for rendering
+        const speed = parseFloat(speedInput.value) || 1.0;
         const offlineCtx = new OfflineAudioContext(
             audioBuffer.numberOfChannels,
             audioBuffer.length / speed,
@@ -206,24 +208,26 @@
         gainNode.connect(offlineCtx.destination);
         source.start(0);
 
+        status.innerText = "Rendering sped-up file...";
+        downloadBtn.disabled = true;
+
         const renderedBuffer = await offlineCtx.startRendering();
         downloadWav(renderedBuffer);
         
-        status.innerText = "Download complete!";
+        status.innerText = "Done! Check your downloads.";
         downloadBtn.disabled = false;
     });
 
-    // Helper: Convert AudioBuffer to WAV format
     function downloadWav(buffer) {
         const length = buffer.length * buffer.numberOfChannels * 2 + 44;
         const outBuffer = new ArrayBuffer(length);
         const view = new DataView(outBuffer);
         let offset = 0;
 
-        function writeString(s) {
+        const writeString = (s) => {
             for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i));
             offset += s.length;
-        }
+        };
 
         writeString('RIFF');
         view.setUint32(offset, length - 8, true); offset += 4;
@@ -240,10 +244,9 @@
         view.setUint32(offset, length - offset - 4, true); offset += 4;
 
         for (let i = 0; i < buffer.length; i++) {
-            for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
-                let sample = buffer.getChannelData(channel)[i];
-                sample = Math.max(-1, Math.min(1, sample));
-                view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+            for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+                let s = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]));
+                view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
                 offset += 2;
             }
         }
@@ -252,7 +255,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `sped_up_audio.wav`;
+        a.download = `output_${speedInput.value}x.wav`;
         a.click();
     }
 </script>
