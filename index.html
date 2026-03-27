@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Speed Inverter</title>
+    <title>audio.inv</title>
     <style>
         body {
             background-color: #000;
@@ -16,31 +16,52 @@
             margin: 0;
             text-transform: lowercase;
         }
+
         .container {
             width: 320px;
-            border: 1px solid #333;
+            border: 1px solid #222;
             padding: 30px;
             text-align: left;
         }
+
         h1 {
-            font-size: 1.2rem;
+            font-size: 1rem;
             margin-bottom: 25px;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid #222;
             padding-bottom: 10px;
+            color: #444;
         }
-        .input-group { margin-bottom: 20px; }
-        label { display: block; font-size: 0.75rem; color: #888; margin-bottom: 8px; }
+
+        .field {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.7rem;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
         input {
             width: 100%;
             background: #000;
-            border: 1px solid #333;
+            border: 1px solid #222;
             color: #fff;
             padding: 8px;
             font-family: inherit;
             box-sizing: border-box;
             outline: none;
+            font-size: 0.8rem;
         }
-        input[type="file"] { font-size: 0.7rem; border: none; padding: 10px 0; }
+
+        input[type="file"] {
+            border: none;
+            padding: 5px 0;
+            font-size: 0.65rem;
+            color: #888;
+        }
+
         button {
             width: 100%;
             background: #fff;
@@ -50,29 +71,46 @@
             font-family: inherit;
             cursor: pointer;
             font-weight: bold;
+            font-size: 0.75rem;
+            margin-top: 10px;
         }
-        button:disabled { opacity: 0.3; cursor: not-allowed; }
-        #status { margin-top: 20px; font-size: 0.7rem; color: #666; }
+
+        button:hover:not(:disabled) {
+            background: #000;
+            color: #fff;
+        }
+
+        button:disabled {
+            opacity: 0.1;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-top: 20px;
+            font-size: 0.65rem;
+            color: #333;
+            min-height: 1.2em;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>speed.inv.v2</h1>
+    <h1>system.warp_engine</h1>
     
-    <div class="input-group">
-        <label>playback_speed</label>
+    <div class="field">
+        <label>target_playback_speed</label>
         <input type="number" id="targetSpeed" value="0.5" step="0.001">
     </div>
 
-    <div class="input-group">
-        <label>source_file</label>
+    <div class="field">
+        <label>input_source</label>
         <input type="file" id="audioInput" accept="audio/*">
     </div>
 
-    <button id="processBtn" disabled>process_and_save</button>
+    <button id="processBtn" disabled>execute_resample</button>
     
-    <div id="status">awaiting_input...</div>
+    <div id="status">ready_for_input...</div>
 </div>
 
 <script>
@@ -81,94 +119,58 @@
     const processBtn = document.getElementById('processBtn');
     const status = document.getElementById('status');
 
-    let originalBuffer;
+    let sourceBuffer;
 
     audioInput.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        status.textContent = "decoding_samples...";
+        status.textContent = "decoding_stream...";
         const arrayBuffer = await file.arrayBuffer();
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        originalBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-        status.textContent = "samples_locked";
+        sourceBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        status.textContent = "stream_buffered";
         processBtn.disabled = false;
     };
 
     processBtn.onclick = async () => {
-        const targetSpeed = parseFloat(speedInput.value);
-        const RATIO = 1 / targetSpeed;
+        const speed = parseFloat(speedInput.value);
+        const RATIO = 1 / speed; // The inversion math
 
-        status.textContent = "manual_resampling...";
+        status.textContent = "running_manual_resample...";
         processBtn.disabled = true;
 
-        // Give the UI a frame to update
+        // Force a small delay to let UI update
         setTimeout(() => {
-            const newNumSamples = Math.floor(originalBuffer.length / RATIO);
-            const offlineCtx = new OfflineAudioContext(
-                originalBuffer.numberOfChannels,
-                newNumSamples,
-                originalBuffer.sampleRate
-            );
+            try {
+                const newLength = Math.floor(sourceBuffer.length / RATIO);
+                const numChannels = sourceBuffer.numberOfChannels;
+                const sampleRate = sourceBuffer.sampleRate;
 
-            // Create a new buffer manually to hold the sped-up data
-            const newBuffer = offlineCtx.createBuffer(
-                originalBuffer.numberOfChannels,
-                newNumSamples,
-                originalBuffer.sampleRate
-            );
+                // Create a blank buffer for the result
+                const audioCtx = new AudioContext();
+                const outBuffer = audioCtx.createBuffer(numChannels, newLength, sampleRate);
 
-            // BRUTE FORCE RESAMPLING:
-            // We manually map old samples to new positions
-            for (let channel = 0; channel < originalBuffer.numberOfChannels; channel++) {
-                const oldData = originalBuffer.getChannelData(channel);
-                const newData = newBuffer.getChannelData(channel);
-                
-                for (let i = 0; i < newNumSamples; i++) {
-                    // Linear interpolation for smoother speed change
-                    let pos = i * RATIO;
-                    let index = Math.floor(pos);
-                    let frac = pos - index;
-                    
-                    if (index + 1 < oldData.length) {
-                        newData[i] = oldData[index] * (1 - frac) + oldData[index + 1] * frac;
-                    } else {
-                        newData[i] = oldData[index];
+                for (let channel = 0; channel < numChannels; channel++) {
+                    const oldData = sourceBuffer.getChannelData(channel);
+                    const newData = outBuffer.getChannelData(channel);
+
+                    for (let i = 0; i < newLength; i++) {
+                        // Linear Resampling Logic
+                        // This physically moves the samples closer together
+                        let pos = i * RATIO;
+                        let index = Math.floor(pos);
+                        let fraction = pos - index;
+
+                        if (index + 1 < oldData.length) {
+                            newData[i] = oldData[index] * (1 - fraction) + oldData[index + 1] * fraction;
+                        } else {
+                            newData[i] = oldData[index];
+                        }
                     }
                 }
-            }
 
-            const wavBlob = bufferToWav(newBuffer);
-            const url = URL.createObjectURL(wavBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `manual_inv_${targetSpeed}x.wav`;
-            a.click();
-            
-            status.textContent = "save_complete";
-            processBtn.disabled = false;
-        }, 100);
-    };
-
-    function bufferToWav(buffer) {
-        let n = buffer.numberOfChannels, s = buffer.sampleRate, f = 1, b = 16,
-            ps = b / 8, ba = n * ps, bl = buffer.length * ba, hl = 44,
-            ab = new ArrayBuffer(hl + bl), v = new DataView(ab);
-        const ws = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
-        ws(0, 'RIFF'); v.setUint32(4, 36 + bl, true); ws(8, 'WAVE'); ws(12, 'fmt ');
-        v.setUint32(16, 16, true); v.setUint16(20, f, true); v.setUint16(22, n, true);
-        v.setUint32(24, s, true); v.setUint32(28, s * ba, true); v.setUint16(32, ba, true);
-        v.setUint16(34, b, true); ws(36, 'data'); v.setUint32(40, bl, true);
-        let offset = 44;
-        for (let i = 0; i < buffer.length; i++) {
-            for (let c = 0; c < n; c++) {
-                let sample = Math.max(-1, Math.min(1, buffer.getChannelData(c)[i]));
-                v.setInt16(offset, sample < 0 ? sample * 32768 : sample * 32767, true);
-                offset += 2;
-            }
-        }
-        return new Blob([ab], { type: 'audio/wav' });
-    }
-</script>
-
-</body>
-</html>
+                status.textContent = "encoding_wav...";
+                const blob = bufferToWav(outBuffer);
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `warped_${speed}
